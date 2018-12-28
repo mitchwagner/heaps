@@ -1,17 +1,24 @@
 """
-A leftist heap is a priority queue with the property that, for each node in
-the queue, the node's left child must be of equal or further distance to the
-nearest leaf than the child's right node.
+We recursively define a heap to be a 3-tuple (l,e,r), where e is a 
+singleton set, and each of l and r is either a heap or the empty set. 
+We refer to e as the root element of a heap, and l and r as subtrees 
+of a heap.
 
-We thus define the rank of a node to be the number of edges separating 
-a node and its rightmost descendant.
+We define the rank of a heap as follows. For a given heap, recursively 
+select the heap's right subtree, until the subtree we select is the 
+empty set. The rank of a heap is given by the number of selections
+performed before selecting the empty set.
+
+In a leftist heap, the rank of the heap's left subtree is greater than 
+or equal to the rank of the heap's right subtree. Furthermore, each 
+subtree of a leftist heap must be a leftist heap, or the empty set.
 
 In the following implementation, we use the following symbols: 
-    - e: the element stored by a node
-    - s: the rank of a node
+    - e: the root element of a heap
+    - s: the rank of a heap subtree 
+    - n: the number of elements in a heap
     - l: the left subtree of a heap
     - r: the right subtree of a heap
-    - n: the number of elements in the heap
 
 This implementation is derived from the recursive definition of a 
 heap; that is, the heap class is self-referencing.
@@ -27,23 +34,17 @@ class EmptyHeapException(Exception):
     pass    
 
 
-class Node(Generic[T]):
-
-    def __init__(self, e=None):
-        self.e: T = e
-        self.s: int = 0
-
-
 class LeftistHeap(Generic[T]):
     
-    root: Optional[Node[T]] = None
+    e: Optional[T] = None
+    s: int = 0
     l: 'Optional[LeftistHeap[T]]' = None
     r: 'Optional[LeftistHeap[T]]' = None
     n: int = 0 
 
-    def __init__(self, root=None) -> None:
-        self.root = root
-        if root:
+    def __init__(self, e=None) -> None:
+        self.e = e 
+        if e:
             self.n = 1
 
 
@@ -51,18 +52,17 @@ class LeftistHeap(Generic[T]):
         '''
         O(1)
         '''
-        if not self.root: 
+        if not self.e: 
             raise EmptyHeapException() 
 
-        return self.root.e 
+        return self.e 
 
 
     def insert(self, e) -> None:
         '''
         O(log(n))
         '''
-        node: Node[T] = Node(e)
-        new_heap: 'LeftistHeap[T]' = LeftistHeap(root=node)
+        new_heap: 'LeftistHeap[T]' = LeftistHeap(e)
 
         self.merge(new_heap)
 
@@ -71,9 +71,11 @@ class LeftistHeap(Generic[T]):
         '''
         O(log(n))
         '''
+        if self.empty():
+            raise EmptyHeapException()
 
         if not self.l: 
-            self.root = None 
+            self.e = None 
             self.n = 0
 
         else:
@@ -81,7 +83,7 @@ class LeftistHeap(Generic[T]):
             right = self.r
 
             self.n = left.n
-            self.root = left.root
+            self.e = left.e
 
             self.l = left.l
             self.r = left.r
@@ -90,10 +92,16 @@ class LeftistHeap(Generic[T]):
 
 
     def empty(self) -> bool:
+        '''
+        O(1)
+        '''
         return self.n == 0
 
 
     def size(self) -> int:
+        '''
+        O(1)
+        '''
         return self.n
 
   
@@ -106,8 +114,8 @@ class LeftistHeap(Generic[T]):
 
         self.n += other.n
 
-        if not self.root:
-            self.root = other.root
+        if not self.e:
+            self.e = other.e
             return
 
         if self.min() > other.min():
@@ -121,20 +129,20 @@ class LeftistHeap(Generic[T]):
         if self.r and not self.l:
             self.swap_children()
 
-        elif self.r and self.l and self.r.root.s > self.l.root.s:
+        elif self.r and self.l and self.r.s > self.l.s:
             self.swap_children()
 
         if not self.r:
-            self.root.s = 0
+            self.s = 0
 
         else:
-            self.root.s = self.r.root.s + 1
+            self.s = self.r.s + 1
 
 
     def swap_root(self, other) -> None:
-        old_root = self.root
-        self.root = other.root
-        other.root = old_root
+        temp = self.e
+        self.e = other.e
+        other.e = temp 
 
 
     def swap_children(self) -> None:
@@ -147,7 +155,7 @@ class LeftistHeap(Generic[T]):
         '''
         O(n)
         '''
-        yield self.root.e
+        yield self.e
 
         if self.l:
             yield from self.l.preorder()
@@ -163,7 +171,7 @@ class LeftistHeap(Generic[T]):
         if self.l:
             yield from self.l.inorder()
 
-        yield self.root.e
+        yield self.e
 
         if self.r:
             yield from self.r.inorder()
@@ -179,11 +187,11 @@ class LeftistHeap(Generic[T]):
         if self.r:
             yield from self.r.postorder()
 
-        yield self.root.e
+        yield self.e
 
 
     def pretty_print(self) -> None:
-        if not self.root:
+        if not self.e:
             print("Empty")
             return
 
@@ -192,8 +200,8 @@ class LeftistHeap(Generic[T]):
 
     def pretty_print_recursive(self, i) -> None:
         spacer = " " * 2 * i
-        print(spacer + str(self.root.e) \
-            + ", s=" + str(self.root.s) \
+        print(spacer + str(self.e) \
+            + ", s=" + str(self.s) \
             + ", n=" + str(self.n))
         
         print(spacer + "left:")
