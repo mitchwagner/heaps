@@ -109,13 +109,15 @@ class LeftistHeap(Generic[T]):
         '''
         O(log(n))
         '''
-        if not other:
+        if not other or other.empty():
             return
 
         self.n += other.n
-
+        
         if not self.e:
             self.e = other.e
+            self.l = other.l
+            self.r = other.r
             return
 
         if self.min() > other.min():
@@ -141,8 +143,16 @@ class LeftistHeap(Generic[T]):
 
     def swap_root(self, other) -> None:
         temp = self.e
+        left = self.l
+        right = self.r
+
         self.e = other.e
+        self.l = other.l
+        self.r = other.r
+
         other.e = temp 
+        other.l = left
+        other.r = right
 
 
     def swap_children(self) -> None:
